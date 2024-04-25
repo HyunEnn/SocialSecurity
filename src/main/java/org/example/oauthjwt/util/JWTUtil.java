@@ -7,7 +7,9 @@ import org.springframework.stereotype.Component;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
+import java.util.Calendar;
 import java.util.Date;
+import java.util.TimeZone;
 
 @Component
 public class JWTUtil {
@@ -19,9 +21,9 @@ public class JWTUtil {
     }
 
     // JWT 페이로드에 들어있는 값 확인 메서드
-    public String getUsername(String token) {
+    public String getUserInfo(String token) {
 
-        return Jwts.parser().verifyWith(secretKey).build().parseSignedClaims(token).getPayload().get("username", String.class);
+        return Jwts.parser().verifyWith(secretKey).build().parseSignedClaims(token).getPayload().get("userInfo", String.class);
     }
 
     public String getRole(String token) {
@@ -29,18 +31,35 @@ public class JWTUtil {
         return Jwts.parser().verifyWith(secretKey).build().parseSignedClaims(token).getPayload().get("role", String.class);
     }
 
+    public String getCategory(String token) {
+
+        return Jwts.parser().verifyWith(secretKey).build().parseSignedClaims(token).getPayload().get("category", String.class);
+    }
+
     public Boolean isExpired(String token) {
 
         return Jwts.parser().verifyWith(secretKey).build().parseSignedClaims(token).getPayload().getExpiration().before(new Date());
     }
 
-    public String createJwt(String username, String role, Long expiredMs) {
+    public String createJwt(String category, String userInfo, String role, Long expiredMs) {
+        // 서버 디폴트 시간대 설정
+        TimeZone serverTimeZone = TimeZone.getDefault();
+        Calendar calendar = Calendar.getInstance(serverTimeZone);
 
+        // 발급 시간 설정
+        Date now = calendar.getTime();
+
+        // 만료 시간 설정
+        calendar.add(Calendar.MILLISECOND, expiredMs.intValue());
+        Date expiration = calendar.getTime();
+
+        // JWT 생성
         return Jwts.builder()
-                .claim("username", username)
+                .claim("category", category)
+                .claim("username", userInfo)
                 .claim("role", role)
-                .issuedAt(new Date(System.currentTimeMillis()))
-                .expiration(new Date(System.currentTimeMillis() + expiredMs))
+                .issuedAt(now)
+                .expiration(expiration)
                 .signWith(secretKey)
                 .compact();
     }

@@ -1,16 +1,15 @@
 package org.example.oauthjwt.service;
 
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.example.oauthjwt.domain.User;
 import org.example.oauthjwt.dto.*;
 import org.example.oauthjwt.repository.UserRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
-
-import java.util.Optional;
 
 @Service
 public class CustomOauth2UserService extends DefaultOAuth2UserService {
@@ -44,8 +43,8 @@ public class CustomOauth2UserService extends DefaultOAuth2UserService {
         }
 
         //리소스 서버에서 발급 받은 정보로 사용자를 특정할 아이디값을 만듬
-        String username = oAuth2Response.getProvider() + " " + oAuth2Response.getProviderId();
-        User existData = userRepository.findByUsername(username);
+        String userInfo = oAuth2Response.getProvider() + " " + oAuth2Response.getProviderId();
+        User existData = userRepository.findByUserInfo(userInfo);
         if(existData != null) {
             existData.updateEmail(oAuth2Response.getEmail());
             existData.updateName(oAuth2Response.getName());
@@ -54,7 +53,7 @@ public class CustomOauth2UserService extends DefaultOAuth2UserService {
             UserDTO userDTO = UserDTO.builder()
                     .name(oAuth2Response.getName())
                     .role(existData.getRole())
-                    .username(existData.getUsername())
+                    .userInfo(existData.getUserInfo())
                     .build();
 
             return new CustomOAuth2User(userDTO);
@@ -62,14 +61,15 @@ public class CustomOauth2UserService extends DefaultOAuth2UserService {
             User newUser = User.builder()
                     .email(oAuth2Response.getEmail())
                     .name(oAuth2Response.getName())
+                    .provider(oAuth2Response.getProvider())
                     .role("ROLE_USER")
-                    .username(username)
+                    .userInfo(userInfo)
                     .build();
 
             userRepository.save(newUser);
 
             UserDTO userDTO = UserDTO.builder()
-                    .username(username)
+                    .userInfo(userInfo)
                     .name(oAuth2Response.getName())
                     .role("ROLE_USER")
                     .build();

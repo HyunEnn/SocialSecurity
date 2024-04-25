@@ -6,6 +6,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.example.oauthjwt.dto.CustomOAuth2User;
 import org.example.oauthjwt.util.JWTUtil;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
@@ -33,23 +34,26 @@ public class CustomSuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         CustomOAuth2User customUserDetails = (CustomOAuth2User) authentication.getPrincipal();
 
         // jwt를 만들 때, role과 username을 claim해서 만들었기 때문에 값을 넘겨줘야함
-        String username = customUserDetails.getUserName();
+        String userInfo = customUserDetails.getUserInfo();
 
         Collection<? extends GrantedAuthority> authorities = authentication.getAuthorities();
         Iterator<? extends GrantedAuthority> iterator = authorities.iterator();
         GrantedAuthority auth = iterator.next();
         String role = auth.getAuthority();
 
-        String token = jwtUtil.createJwt(username, role, 60 * 60 * 60L);
+        String access = jwtUtil.createJwt("access", userInfo, role, 60 * 60 * 10L); // 1시간
+        String refresh = jwtUtil.createJwt("refresh", userInfo, role, 86400000L); // 하루
 
-        response.addCookie(createCookie("Authorization", token));
+        response.setHeader("Authorization", access);
+        response.addCookie(createCookie("refresh", refresh));
+        response.setStatus(HttpStatus.OK.value());
         response.sendRedirect("http://localhost:5173");
     }
 
     private Cookie createCookie(String key, String value) {
 
         Cookie cookie = new Cookie(key, value);
-        cookie.setMaxAge(60*60*60);
+        cookie.setMaxAge(60*60*24000);
         cookie.setPath("/");
         cookie.setHttpOnly(true);
 

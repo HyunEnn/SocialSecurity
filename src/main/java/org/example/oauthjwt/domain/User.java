@@ -19,9 +19,10 @@ public class User {
     private Long id;
 
     private String name;
-    private String username;
+    private String userInfo;
     private String email;
     private String role;
+    private String provider;
 
     // 편의 메서드
     public void updateName(String name) {
