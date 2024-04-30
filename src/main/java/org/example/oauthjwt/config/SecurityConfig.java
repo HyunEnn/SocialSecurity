@@ -1,38 +1,35 @@
 package org.example.oauthjwt.config;
 
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
 import org.example.oauthjwt.oauth2.CustomSuccessHandler;
+import org.example.oauthjwt.repository.RefreshTokenRepository;
+import org.example.oauthjwt.service.CustomLogoutService;
 import org.example.oauthjwt.service.CustomOauth2UserService;
 import org.example.oauthjwt.util.JWTFilter;
 import org.example.oauthjwt.util.JWTUtil;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.authentication.logout.LogoutFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 
 import java.util.Arrays;
-import java.util.Collections;
 
 @Configuration
+@RequiredArgsConstructor
 @EnableWebSecurity
 public class SecurityConfig {
 
     private final CustomOauth2UserService customOauth2UserService;
     private final CustomSuccessHandler customSuccessHandler;
+    private final RefreshTokenRepository refreshRepository;
     private final JWTUtil jwtUtil;
-
-    public SecurityConfig(CustomOauth2UserService customOauth2UserService, CustomSuccessHandler customSuccessHandler, JWTUtil jwtUtil) {
-
-        this.customOauth2UserService = customOauth2UserService;
-        this.customSuccessHandler = customSuccessHandler;
-        this.jwtUtil = jwtUtil;
-    }
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -58,11 +55,16 @@ public class SecurityConfig {
         //From 로그인 방식 disable
         http.formLogin((auth) -> auth.disable());
 
+        //Form 로그아웃 방식 disable
+//        http.logout((auth) -> auth.disable());
+
+
         //HTTP Basic 인증 방식 disable
         http.httpBasic((auth) -> auth.disable());
 
         //JWTFilter 추가
         http.addFilterAfter(new JWTFilter(jwtUtil), UsernamePasswordAuthenticationFilter.class);
+        http.addFilterBefore(new CustomLogoutService(jwtUtil, refreshRepository), LogoutFilter.class);
 
         //oauth2
         http.oauth2Login((oauth2) -> oauth2
@@ -71,9 +73,9 @@ public class SecurityConfig {
                 .successHandler(customSuccessHandler));
 
         //경로별 인가 작업
-        http
-                .authorizeHttpRequests((auth) -> auth
+        http.authorizeHttpRequests((auth) -> auth
                         .requestMatchers("/").permitAll()
+                        .requestMatchers("/my").permitAll()
                         .requestMatchers("/reissue").permitAll()
                         .anyRequest().authenticated());
 

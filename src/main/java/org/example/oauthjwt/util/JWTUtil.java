@@ -7,9 +7,7 @@ import org.springframework.stereotype.Component;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
-import java.util.Calendar;
 import java.util.Date;
-import java.util.TimeZone;
 
 @Component
 public class JWTUtil {
@@ -43,23 +41,16 @@ public class JWTUtil {
 
     public String createJwt(String category, String userInfo, String role, Long expiredMs) {
         // 서버 디폴트 시간대 설정
-        TimeZone serverTimeZone = TimeZone.getDefault();
-        Calendar calendar = Calendar.getInstance(serverTimeZone);
 
-        // 발급 시간 설정
-        Date now = calendar.getTime();
-
-        // 만료 시간 설정
-        calendar.add(Calendar.MILLISECOND, expiredMs.intValue());
-        Date expiration = calendar.getTime();
-
+        System.out.println("생성 시간 = " + new Date(System.currentTimeMillis()));
+        System.out.println("만료 시간 = " + new Date(System.currentTimeMillis() + expiredMs));
         // JWT 생성
         return Jwts.builder()
                 .claim("category", category)
-                .claim("username", userInfo)
+                .claim("userInfo", userInfo)
                 .claim("role", role)
-                .issuedAt(now)
-                .expiration(expiration)
+                .issuedAt(new Date(System.currentTimeMillis()))
+                .expiration(new Date(System.currentTimeMillis() + expiredMs))
                 .signWith(secretKey)
                 .compact();
     }
